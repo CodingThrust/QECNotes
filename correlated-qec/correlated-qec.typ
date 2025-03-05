@@ -3,11 +3,30 @@
 #import "@preview/quill:0.6.0": *
 #set math.equation(numbering: "(1)")
 
+#let zy(it) = {
+  text(orange, [[ZY: #it]])
+}
+
+#let jinguo(it) = {
+  text(red, [[JG: #it]])
+}
+
 #align(center)[
 = Quantum Error Correction with Spatially Correlated Errors
 _Jinguo Liu_
 ]
 
+#zy[add more refs]
+== Introduction
+Traditional QEC schemes, such as the surface code and stabilizer formalism, predominantly assume independent error models, where qubit errors occur uncorrelated in space and time. These models underpin the theoretical promise of thresholds and code distances, ensuring protection against a fixed number of errors. However, real-world quantum hardware—including superconducting circuits, trapped ions, and photonic systems—exhibits correlated errors that defy these assumptions. Examples include crosstalk between adjacent qubits during simultaneous gate operations, spatially correlated noise in lattices, and joint errors following entangling gates like CNOT. Such correlations degrade the performance of conventional decoders, which are ill-equipped to handle complex error syndromes arising from these dependencies.  
+
+We propose two key innovations to address this challenge:
+- Learning device-specific error models from experimental data 
+Tensor network methods provide a powerful framework for modeling correlated error channels in quantum circuits by leveraging their ability to efficiently represent high-dimensional quantum processes with structured correlations. To train the model, the loss function is defined as the negative log-likelihood of the experimental data. Automatic differentiation and gradient descent are then employed to iteratively update the tensor network parameters, efficiently navigating the high-dimensional parameter space. 
+- Designing efficient decoders for these correlated models. 
+Once the error model is learned, these models demand decoding algorithms that account for multi-qubit correlations. We can formulate the decoding problem as a constrained optimization problem maximizing error likelihoods under syndrome constraints. Mixed-integer programming (MIP), a combinatorial optimization framework, emerges as a powerful candidate. The optimization problem can be reduced to a MIP problem and solved using state-of-the-art solvers.
+
+This integrated approach—combining data-driven error characterization with advanced optimization—promises to enhance the resilience of quantum systems against the idiosyncratic noise of modern hardware, accelerating progress toward fault-tolerant quantum computation.
 == Correlated quantum channels
 
 We consider an error model where the errors are spatially correlated, often caused by the cross-talk between neighboring qubits.
@@ -40,7 +59,7 @@ Similarly, the two-qubit error channel can be written as
 $
 cal(E)_(1 2)(rho) = sum_(i,j=0)^3 p_(i j) (sigma_i times.circle sigma_j) rho (sigma_i times.circle sigma_j),
 $
-where $(p_(i j))_(i,j=0)^3$ are the error probabilities.
+where $(p_(i j))_(i,j=0)^3$ are the error probabilities. #jinguo[Why this channel is complete?]
 
 Hence, for a general $n$-qubit error channel, we can parameterize it with $4^n$ parameters. This parameterization is does not characterize all the possible error channels, e.g. it does not include coherent errors. A complete parameterization requires $4^n (4^n-1)$ parameters.
 Here, for simplicity, we only consider the Pauli errors.
@@ -65,16 +84,16 @@ In the straight-forward to convert any quantum circuit into a tensor network. Fo
     content((rel: (0.5, 0), to: "tao'" + str(j)), [$|s_#(j+1) angle.r$])
   }
   for j in (0,1) {
-    content((dx, -j * DY), box(stroke: red, inset: 3pt, [$Sigma_1$]), name: "PA" + str(j))
-    content((2*dx, -j * DY), box(stroke: black, inset: 3pt, [$H$]), name: "H" + str(j))
+    content((dx, -j * DY - dy), box(stroke: red, inset: 3pt, [$Sigma_1$]), name: "PA" + str(j))
+    content((2*dx, -j * DY - dy), box(stroke: black, inset: 3pt, [$H$]), name: "H" + str(j))
     content((3*dx, -j * DY - 0.5 * dy), align(horizon, box(stroke: red, inset: 3pt, height: dy * 1.7cm, [$Sigma_2$])), name: "PB" + str(j))
     content((4*dx, -j * DY - 2 * dy), box(stroke: red, inset: 3pt, [$Sigma_1$]), name: "PC" + str(j))
     content((5*dx, -j * DY - 2 * dy), box(stroke: black, inset: 3pt, [$xor$]), name: "xor" + str(j))
   }
-  line("rho0", "PA0")
+  line("rho1", "PA0")
   line("PA0", "H0")
-  line("H0", (rel: (0, dy/2), to: "PB0.west"))
-  line("rho1", (rel: (0, -dy/2), to: "PB0.west"))
+  line("rho0", (rel: (0, dy/2), to: "PB0.west"))
+  line("H0", (rel: (0, -dy/2), to: "PB0.west"))
   line("rho2", "PC0")
   line("PC0", "xor0")
   line((rel: (0, dy/2), to: "PB0.east"), "tao0")
@@ -82,10 +101,10 @@ In the straight-forward to convert any quantum circuit into a tensor network. Fo
   line("xor0", "tao2")
   line("xor0", (rel: (0, dy), to: "xor0"))
 
-  line("rho'0", "PA1")
+  line("rho'1", "PA1")
   line("PA1", "H1")
-  line("H1", (rel: (0, dy/2), to: "PB1.west"))
-  line("rho'1", (rel: (0, -dy/2), to: "PB1.west"))
+  line("rho'0", (rel: (0, dy/2), to: "PB1.west"))
+  line("H1", (rel: (0, -dy/2), to: "PB1.west"))
   line("rho'2", "PC1")
   line("PC1", "xor1")
   line((rel: (0, dy/2), to: "PB1.east"), "tao'0")
@@ -93,7 +112,7 @@ In the straight-forward to convert any quantum circuit into a tensor network. Fo
   line("xor1", "tao'2")
   line("xor1", (rel: (0, dy), to: "xor1"))
 
-  circle((rel: (-dx/2, -2.8 * dy), to: "PA0"), radius: 0.25, stroke: red, name: "pA")
+  circle((rel: (-dx/2, -1.8 * dy), to: "PA0"), radius: 0.25, stroke: red, name: "pA")
   circle((rel: (-dx/2, -2.3 * dy), to: "PB0"), radius: 0.25, stroke: red, name: "pB")
   circle((rel: (-dx/2, -0.8 * dy), to: "PC0"), radius: 0.25, stroke: red, name: "pC")
   content("pA", [$p$])
@@ -109,4 +128,13 @@ In the straight-forward to convert any quantum circuit into a tensor network. Fo
 caption: [Tensor network representation of a quantum channel. The gates in the bottom are the conjugate of the gates in the top. The red circles are the trainable parameters representing the error probabilities.]
 ) <fig:tensor-network>
 
+== Gradient-based optimization
+In @fig:tensor-network, $p$ and $p_2$ are the trainable parameters in the tensor network. And the loss function is the negative log-likelihood of the output probability $p(bold(s))$. We can use the gradient-based optimization to train the parameters.
+
+== Correlated Quantum Decoder
+
+== Simlation Results
+
+== Experimental Proposal
+#zy[bullet points 12345678]
 
