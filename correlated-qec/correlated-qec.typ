@@ -13,18 +13,17 @@
 
 #align(center)[
 = Quantum Error Correction with Spatially Correlated Errors
-_Jinguo Liu_
+_Zhongyi Ni_, _Jinguo Liu_
 ]
 
-#zy[add more refs]
 == Introduction
-Traditional QEC schemes, such as the surface code and stabilizer formalism, predominantly assume independent error models, where qubit errors occur uncorrelated in space and time. These models underpin the theoretical promise of thresholds and code distances, ensuring protection against a fixed number of errors. However, real-world quantum hardware—including superconducting circuits, trapped ions, and photonic systems—exhibits correlated errors that defy these assumptions. Examples include crosstalk between adjacent qubits during simultaneous gate operations, spatially correlated noise in lattices, and joint errors following entangling gates like CNOT. Such correlations degrade the performance of conventional decoders, which are ill-equipped to handle complex error syndromes arising from these dependencies.  
+Traditional QEC schemes, such as the surface code and stabilizer formalism, predominantly assume independent error models, where qubit errors occur uncorrelated in space and time. These models underpin the theoretical promise of thresholds and code distances, ensuring protection against a fixed number of errors@gottesman1997stabilizer. However, real-world quantum hardware—including superconducting circuits@gambetta2012characterization, trapped ions@ballance2016high, and photonic systems@kok2007linear—exhibits correlated errors that defy these assumptions. Examples include crosstalk between adjacent qubits during simultaneous gate operations@krinner2019engineering, spatially correlated noise in lattices@grondalski1999spatial, and joint errors following entangling gates like CNOT@erhard2019characterizing. Such correlations degrade the performance of conventional decoders, which are ill-equipped to handle complex error syndromes arising from these dependencies.  
 
 We propose two key innovations to address this challenge:
 - Learning device-specific error models from experimental data 
-Tensor network methods provide a powerful framework for modeling correlated error channels in quantum circuits by leveraging their ability to efficiently represent high-dimensional quantum processes with structured correlations. To train the model, the loss function is defined as the negative log-likelihood of the experimental data. Automatic differentiation and gradient descent are then employed to iteratively update the tensor network parameters, efficiently navigating the high-dimensional parameter space. 
+Tensor network methods provide a powerful framework for modeling correlated error channels in quantum circuits by leveraging their ability to efficiently represent high-dimensional quantum processes with structured correlations@torlai2023quantum. To train the model, the loss function is defined as the negative log-likelihood of the experimental data. Automatic differentiation@peterUnderPeterOMEinsumjl2025 and gradient descent@FluxMLOptimisersjl2025 are then employed to iteratively update the tensor network parameters, efficiently navigating the high-dimensional parameter space. 
 - Designing efficient decoders for these correlated models. 
-Once the error model is learned, these models demand decoding algorithms that account for multi-qubit correlations. We can formulate the decoding problem as a constrained optimization problem maximizing error likelihoods under syndrome constraints. Mixed-integer programming (MIP), a combinatorial optimization framework, emerges as a powerful candidate. The optimization problem can be reduced to a MIP problem and solved using state-of-the-art solvers.
+Once the error model is learned, these models demand decoding algorithms that account for multi-qubit correlations. We can formulate the decoding problem as a constrained optimization problem maximizing error likelihoods under syndrome constraints. Mixed-integer programming (MIP), a combinatorial optimization framework, emerges as a powerful candidate. The optimization problem can be reduced to a MIP problem@landahl2011fault@cain2024correlated and solved using state-of-the-art solvers.
 == Correlated quantum channels
 
 We consider an error model where the errors are spatially correlated, often caused by the cross-talk between neighboring qubits.
@@ -57,13 +56,18 @@ Similarly, the two-qubit error channel can be written as
 $
 cal(E)_(1 2)(rho) = sum_(i,j=0)^3 p_(i j) (sigma_i times.circle sigma_j) rho (sigma_i times.circle sigma_j),
 $
-where $(p_(i j))_(i,j=0)^3$ are the error probabilities. #jinguo[Why this channel is complete?]
+where $(p_(i j))_(i,j=0)^3$ are the error probabilities. 
+
+*Remark.* Why this channel?
+- It is directly related to the physical error distribution in the quantum hardware.
+- Any quantum channel can be converted into a sum of Pauli errors with pauli twirling@hashim2020randomized.
+- Error model related deocder is hard to design for more general channels.
 
 Hence, for a general $n$-qubit error channel, we can parameterize it with $4^n$ parameters. This parameterization is does not characterize all the possible error channels, e.g. it does not include coherent errors. A complete parameterization requires $4^n (4^n-1)$ parameters.
 Here, for simplicity, we only consider the Pauli errors.
 
 == From channels to tensor networks
-In the straight-forward to convert any quantum circuit into a tensor network. For channels, we must go to the representation of superoperators. Let us denote the circuit in @fig:correlated-errors as $cal(C)$. The tensor network for representing the output probability $p(bold(s)) = tr(cal(C)(rho) |bold(s)angle.r angle.l bold(s)|)$ is shown in @fig:tensor-network.
+In the straight-forward to convert any quantum circuit into a tensor network. For channels, we must go to the representation of superoperators. Let us denote the circuit in @fig:correlated-errors as $cal(C)$. The tensor network for representing the output probability $p(psi) = tr(cal(C)(rho) |psi angle.r angle.l psi|)$ is shown in @fig:tensor-network.
 
 #figure(canvas(length: 1cm, {
   import draw: *
@@ -77,9 +81,9 @@ In the straight-forward to convert any quantum circuit into a tensor network. Fo
     content((rel: (-0.4, 0), to: "rho'" + str(j)), [$angle.l 0|$])
 
     circle((6 * dx, -j * dy), radius: 0.1, name: "tao" + str(j))
-    content((rel: (0.5, 0), to: "tao" + str(j)), [$angle.l s_#(j+1)|$])
+    content((rel: (0.5, 0), to: "tao" + str(j)), [$angle.l psi_#(j+1)|$])
     circle((6 * dx, -j * dy - DY), radius: 0.1, name: "tao'" + str(j))
-    content((rel: (0.5, 0), to: "tao'" + str(j)), [$|s_#(j+1) angle.r$])
+    content((rel: (0.5, 0), to: "tao'" + str(j)), [$|psi_#(j+1) angle.r$])
   }
   for j in (0,1) {
     content((dx, -j * DY - dy), box(stroke: red, inset: 3pt, [$Sigma_1$]), name: "PA" + str(j))
@@ -127,7 +131,11 @@ caption: [Tensor network representation of a quantum channel. The gates in the b
 ) <fig:tensor-network>
 
 == Gradient-based optimization
-In @fig:tensor-network, $p$ and $p_2$ are the trainable parameters in the tensor network. And the loss function is the negative log-likelihood of the output probability $p(bold(s))$. We can use the gradient-based optimization to train the parameters.
+In @fig:tensor-network, $p$ and $p_2$ are the trainable parameters in the tensor network. We denote them as $theta$ and the channel parameterize by them as $cal(C)_theta$. Suppose we perform this circuit $N$ times and each time we get a measurement result $|psi_i angle.r$. The data set is $psi = {|psi_1 angle.r, |psi_2 angle.r, ..., |psi_N angle.r}$. Wwe are trying to minimize the negative log-likelihood of the output probabilities $p(psi_i)$ with respect to the parameters $theta$.
+$ 
+  min_theta L(psi; theta) = min_theta -sum_i log p(psi_i) = min_theta -sum_i log tr(cal(C)_theta (rho) |psi_i angle.r angle.l psi_i|)
+$
+We can use the gradient-based optimization to train the parameters. The gradient of the loss function with respect to the parameters is achieved by automatic differentiation of tensor networks.
 
 == Correlated Quantum Decoder
 Suppose we have the error distribution $p(e)$ and the syndrome $s$ measured from the quantum circuit. The goal is to find the most likely error $e$ that causes the syndrome $s$.
@@ -141,70 +149,43 @@ where $s(e)$ is the syndrome of the error $e$.
 Suppose the parity check matrices of a CSS quantum code are $H_x in bb(F)_2^(m_x times n)$ and $H_z in bb(F)_2^(m_z times n)$, where $m_x$ and $m_z$ are the number of $X$ and $Z$ stabilizers, respectively. And we denote the error $e = (bold(x),bold(y), bold(z))$, where $bold(x),bold(y),bold(z) in bb(F)_2^n$ are the error vectors. The $j$-th element of $bold(sigma)$ is $1$ if the $j$-th qubit is flipped by an $sigma$ error, and $0$ otherwise, for $sigma in {x,y,z}$. Here we assume that there is at most one error per qubit, i.e., $bold(x)_j + bold(y)_j + bold(z)_j <= 1$. The syndrome of $X$-stabilizers and $Z$-stabilizers are $H_x (bold(y)+bold(z)) = s_x in bb(F)_2^(m_x)$ and $H_z (bold(x)+bold(y)) = s_z in bb(F)_2^(m_z)$. Now we can rewrite the optimization problem in @eq:p1 as
 $
 max quad &log p(e)\
-"s.t." quad & H_x (bold(y+ z)) = s_x\
-& H_z (bold(x+ y)) = s_z\
-& bold(x),bold(y),bold(z) in {0,1}^n\
+"s.t." quad & H_x (bold(y+ z)) = s_x + 2 bold(k)\
+& H_z (bold(x+ y)) = s_z + 2bold(l)\
 & bold(x)_j + bold(y)_j + bold(z)_j <= 1, quad j=1,...,n\
+& bold(x),bold(y),bold(z) in {0,1}^n\
+& bold(k) in bb(Z)^(m_x), bold(l) in bb(Z)^(m_z)\
 $ <eq:p2>
+where $bold(k)$ and $bold(l)$ are auxiliary variables to convert the modulo operation into linear constraints.
+
 If the error distributions on different qubits are independent to each other, we can wirte the log-likelihood of the total error probability as
 $
 L = log p(e) & = log product p_i (bold(x)_i, bold(y)_i, bold(z)_i)\
 & = sum_i log p_i (bold(x)_i, bold(y)_i, bold(z)_i)\
+& = sum_i (bold(x)_i log p_(x i) + bold(y)_i log p_(y i) + bold(z)_i log p_(z i) + (1-bold(x)_i-bold(y)_i-bold(z)_i) log (1-p_(x i)-p_(y i)-p_(z i)))\ 
 $
+with $p_(sigma i)$ denoting the probability of the $i$-th qubit being flipped by an error of type $sigma in {x,y,z}$. Now the objective function in @eq:p2 becomes a linear function of the error vectors $bold(x),bold(y),bold(z)$ with real coefficients. And the constraints are linear as well. This is a mixed-integer programming problem, which can be solved with state-of-the-art solvers.
+
+If the error distributions on different qubits are not independent, suppose that the error distribution of qubit $1$ and $2$ is a joint distribution $p_(1 2)$. This term in log-likelihood of the total error probability becomes
+$
+& log p_(1 2) (bold(x)_1, bold(y)_1, bold(z)_1, bold(x)_2, bold(y)_2, bold(z)_2)\ 
+ = & bold(x)_1  bold(x)_2 log  p_(X X)  +  bold(x)_1  bold(y)_2 log  p_(X Y)  + bold(x)_1  bold(z)_2 log  p_(X Z)  ... \
+ & + bold(x)_1  (1 - bold(x)_2 - bold(y)_2 - bold(z)_2) log  p_(X I)  +  (1 - bold(x)_1 - bold(y)_1 - bold(z)_1) bold(x)_2 log  p_(I X)  ... \
+  & + (1 - bold(x)_1 - bold(y)_1 - bold(z)_1) (1 - bold(x)_2 - bold(y)_2 - bold(z)_2) log  p_(I I) \
+= & sum c_(x_1 x_2) bold(x)_1 bold(x)_2  + sum c_(x_1) bold(x)_1 + c
+$
+where $c$ are constants. The result is a quadratic function of the error vectors $bold(x)_1,bold(y)_1,bold(z)_1$ and $bold(x)_2,bold(y)_2,bold(z)_2$ with real coefficients. To solve this problem we can use auxiliary variables to convert the quadratic terms into linear ones with linear constraints as follows.
+$
+min quad &a b & & quad arrow.l.r.double.long quad & min quad & c &\ 
+"s.t." quad & a,b in {0,1} & &  & "s.t." quad & c <= a &\
+&&&&& c <= b\
+&&&&& c >= a + b - 1\
+&&&&& a,b,c in {0,1}\
+$
+For joint probability distributions on more qubits, the number of auxiliary variables of this same technique will increase exponentially. Here we only foucs on the two-qubit case.
+
 == Simlation Results
 
 == Experimental Proposal
 #zy[bullet points 12345678]
 
-// # # Mixed-Integer Programming for Decoding
-// # ## Problem Statement
-// # The parity-check matrices of a CSS quantum code are $H_x \in \mathbb{F}^{m_x \times n}_2$ and $H_z \in \mathbb{F}^{m_z \times n}_2$ where $\mathbb{F}_2$ is the finite field with two elements, $n$ is the number of qubits, $m_x$ is the number of $X$-stabilizers, and $m_z$ is the number of $Z$-stabilizers. We can use [`CSSTannerGraph`](@ref) to generate a tanner graph for a CSS quantum code.
-// using TensorQEC
-// tanner = CSSTannerGraph(SteaneCode());
-// # And the parity-check matrix of $X$-stabilizers of the Steane code is
-// tanner.stgx.H
-
-// # The error vectors $\mathbf{x,y,z} \in \mathbb{F}^n_2$ are binary vectors. The $j$-th element of $\mathbf{x}$ is $1$ if the $j$-th qubit is flipped by an $X$-error, and $0$ otherwise. There is at most one error per qubit, i.e., $\mathbf{x}_j + \mathbf{y}_j + \mathbf{z}_j \leq 1$. [`random_error_qubits`](@ref) can be used to generate a random error pattern for a given number of qubits and an error model.
-// using Random; Random.seed!(110)
-// error_pattern = random_error_qubits(7, DepolarizingError(0.1))
-// # Here we decompose $Y$ errors into $X$ and $Z$ errors. The error pattern is $Y_4X_6 =iX_4X_6Z_4$.
-
-// # The syndrome of $X$-stabilizers and $Z$-stabilizers are $H_x(\mathbf{y}+\mathbf{z}) = s_x \in \mathbb{F}^{m_x}_2$ and $H_z (\mathbf{x}+\mathbf{y}) = s_z \in \mathbb{F}^{m_z}_2$. We can use [`syndrome_extraction`](@ref) to extract the syndrome of a given error pattern.
-// syndrome = syndrome_extraction(error_pattern,tanner)
-// # The goal is to find the most-likely error $\mathbf{x},\mathbf{y},\mathbf{z} \in \mathbb{F}^n_2$ given the syndrome $s_x$ and $s_z$.
-
-// # Suppose that the error distributions on different qubits are independent to each other. And we use $p_{\sigma j}$ to denote the probability of the $j$-th qubit being flipped by an error of type $\sigma \in \{x,y,z\}$. Then the logarithm of the total error probability is 
-// # ```math
-// # L(\mathbf{x,y,z}) = \sum_{j=1}^n (\mathbf{x}_j \log p_{xj} + \mathbf{y}_j \log p_{yj} + \mathbf{z}_j \log p_{zj} + (1-\mathbf{x}_j-\mathbf{y}_j-\mathbf{z}_j) \log (1-p_{xj}-p_{yj}-p_{zj})).
-// # ```
-// # The resulting mixed-integer program can be summarized as:
-// # ```math
-// # \begin{aligned}
-// # \text{maximize} \quad & L(\mathbf{x,y,z}) \\
-// # \text{subject to} \quad & H_x (\mathbf{y+z}) = s_x, \\
-// # & H_z (\mathbf{x+y}) = s_z, \\
-// # & \mathbf{x,y,z} \in \{0,1\}^n, \\
-// # & \mathbf{x}_j + \mathbf{y}_j + \mathbf{z}_j \leq 1, \quad j=1,\ldots,n.
-// # \end{aligned}
-// # ```
-
-// # ## Mixed-Integer Programming
-// # Since $H_x (\mathbf{y+z}) = s_x$ in $\mathbb{F}_2$ is equivalent to $H_x (\mathbf{y+z}) = s_x \mod 2$ in $\mathbb{Z}$, we can convert above programming problem into a mixed-integer programming problem as follows:
-// # ```math
-// # \begin{aligned}
-// # \text{maximize} \quad & L(\mathbf{x,y,z}) \\
-// # \text{subject to} \quad & H_x (\mathbf{y+z}) = s_x + 2\mathbf{k}, \\
-// # & H_z (\mathbf{x+y}) = s_z + 2\mathbf{l}, \\
-// # & \mathbf{x,y,z} \in \{0,1\}^n, \\
-// # & \mathbf{x}_j + \mathbf{y}_j + \mathbf{z}_j \leq 1, \quad j=1,\ldots,n.\\
-// # & \mathbf{k} \in \mathbb{Z}^{m_x}, \mathbf{l} \in \mathbb{Z}^{m_z}.
-// # \end{aligned}
-// # ```
-// # Here $\mathbf{k}$ and $\mathbf{l}$ are auxiliary variables to convert the modulo operation into linear constraints.
-
-// # We implement the above mixed-integer programming problem in [`IPDecoder`](@ref) and solve it with [JuMP.jl](https://github.com/jump-dev/JuMP.jl) and [HiGHS.jl](https://github.com/jump-dev/HiGHS.jl). We can use [`decode`](@ref) to decode the syndrome with this integer programming decoder.
-// decoder = IPDecoder()
-// decode(decoder, tanner, syndrome)
-
-// # Here we get a different error pattern $X_2Z_4$. That is because the default error probability is $0.05$ for each qubit and each error type. And this error pattern has the same syndrome as the previous one. If we slightly increase the $X$ and $Y$ error probability, we can get the correct error pattern $Y_4X_6$.
-// decode(decoder, tanner, syndrome, fill(DepolarizingError(0.06, 0.06, 0.05),7))
+#bibliography("refs.bib")
