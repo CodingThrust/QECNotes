@@ -130,6 +130,76 @@ In the straight-forward to convert any quantum circuit into a tensor network. Fo
 caption: [Tensor network representation of a quantum channel. The gates in the bottom are the conjugate of the gates in the top. The red circles are the trainable parameters representing the error probabilities.]
 ) <fig:tensor-network>
 
+
+
+== Informationally complete measurements
+How many measurements and what kind of measurements are needed to estimate the state of a quantum system? Suppose we have a depolaring channel $cal(E)_bold(p)$ parameterized by a vector $bold(p)$. The input state and the measurement state are $rho_"in"$ and $rho_"out"$, respectively. The output probability is 
+$
+p = tr(cal(E)_bold(p)(rho_"in") rho_"out")
+$ 
+We have the following tensor network representation of this channel.
+#figure(canvas({
+  import draw: *
+  circle((0, 0), radius: 0.5, name: "rhoin")
+  content("rhoin", [$rho_"in"$])
+  circle((4,0),radius: 0.5, name: "rhoout")
+  content("rhoout", [$rho_"out"$])
+  content((2,0), box(stroke: black, inset: 12pt, [$A$]), name: "PA" )
+  circle((2,1.5),radius: 0.5, name: "p",stroke:red)
+  content("p", [$bold(p)$])
+  line("rhoin", "PA")
+  line("PA", "rhoout")
+  line("p", "PA", stroke: red)
+})) 
+For different input and measurement states, we have linear constants on $bold(p)$. As long as we have enough linearly independent measurements, we can determine the value of $bold(p)$. The number of linearly independent measurements is the number of parameters in $bold(p)$.
+For systems that can be measured in more than two basis, we can use the following circuit to estimate $bold(p)$.
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((0, 0), quantum-circuit(
+    lstick($|0〉$),  $U$,2,meter()
+  ))
+  circle((0.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_1")
+  content((rel: (0, 0.3), to: "E_1"), s[$cal(E)_1$])
+})) 
+Here random unitaries can generate different input states. We perform the input and measurement under 3 different basis. We will have 3 linearly independent measurements to estimate $bold(p)$.
+
+However, for systems that can only be measured under $|0 angle.r$ and $|1 angle.r$, we need to apply another unitary before the measurement. But this unitary will introduce error into the system, too. The circuit is as follows
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((0, 0), quantum-circuit(
+    lstick($|0〉$),  $U_1$,2,$U_2$,2,meter()
+  ))
+  circle((1.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_1")
+  circle((-0.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_12")
+  content((rel: (0, 0.3), to: "E_1"), s[$cal(E)_1$])
+  content((rel: (0, 0.3), to: "E_12"), s[$cal(E)_1$])
+})) 
+The tensor network representation of this circuit is
+#figure(canvas({
+  import draw: *
+  circle((0, 0), radius: 0.7, name: "rhoin")
+  content("rhoin", [$|0 angle.r angle.l 0|$])
+  circle((10,0),radius: 0.7, name: "rhoout")
+  content("rhoout", [$|0 angle.r angle.l 0|$])
+  line((10.5,-1), (11.5,1), stroke: black)
+    circle((12,0),radius: 0.7, name: "rhoout2")
+  content("rhoout2", [$|1 angle.r angle.l 1|$])
+  content((2,0), box(stroke: black, inset: 12pt, [$U_1$]), name: "U1" )
+  content((4,0), box(stroke: black, inset: 12pt, [$cal(E)_1$]), name: "E1" )
+  content((6,0), box(stroke: black, inset: 12pt, [$U_2$]), name: "U2" )
+  content((8,0), box(stroke: black, inset: 12pt, [$cal(E)_2$]), name: "E2" )
+  circle((6,2),radius: 0.5, name: "p",stroke:red)
+  content("p", [$bold(p)$])
+  line("rhoin", "U1")
+  line("U1", "E1")
+  line("E1", "U2")
+  line("U2", "E2")
+  line("E2", "rhoout")
+  line("E1", (rel: (0, 1), to: "E1"),(rel: (0, 1), to: "E2"),"E2", stroke: red,name: "line1")
+  line("p", "line1.mid", stroke: red)
+})) 
 == Gradient-based optimization
 In @fig:tensor-network, $p$ and $p_2$ are the trainable parameters in the tensor network. We denote them as $theta$ and the channel parameterize by them as $cal(C)_theta$. Suppose we perform this circuit $N$ times and each time we get a measurement result $|psi_i angle.r$. The data set is $psi = {|psi_1 angle.r, |psi_2 angle.r, ..., |psi_N angle.r}$. Wwe are trying to minimize the negative log-likelihood of the output probabilities $p(psi_i)$ with respect to the parameters $theta$.
 $ 
@@ -203,6 +273,29 @@ caption: [
   #zy[Caption]
 ]) 
 
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((0, 0), quantum-circuit(
+    lstick($|0〉$),  $U_1$,2,$U_2$,2,meter()
+  ))
+    content((7, 0), quantum-circuit(
+    lstick($|0〉$), mqgate($U_1$, n:2),2, mqgate($U_2$, n:2),2,meter(),[\ ],
+    lstick($|0〉$),6,meter(),
+  ))
+  circle((1.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_1")
+  circle((-0.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_12")
+  circle((6.5, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_2")
+  circle((8.5, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_22")
+  content((rel: (0, 0.3), to: "E_1"), s[$cal(E)_1$])
+  content((rel: (0, 0.3), to: "E_12"), s[$cal(E)_1$])
+  content((rel: (0.3, 0), to: "E_2"), s[$cal(E)_(1 2)$])
+    content((rel: (0.3, 0), to: "E_22"), s[$cal(E)_(1 2)$])
+}), 
+caption: [
+  #zy[Caption]
+]) 
+
 #let surface_code(loc, m, n, size:1, color1:yellow, color2:aqua,number_tag:false,type_tag:true) = {
   import draw: *
   for i in range(m){
@@ -257,8 +350,8 @@ caption: [
   import draw: *
   let x = loc.at(0)
   let y = loc.at(1)
-  content((x, y), box(stroke: black, inset: 10pt, [$X$ stabilizers],fill: color2))
-  content((x, y - 1.5*size), box(stroke: black, inset: 10pt, [$Z$ stabilizers],fill: color1))
+  content((x, y), box(stroke: black, inset: 10pt, [$X$ stabilizers],fill: color2, radius: 4pt))
+  content((x, y - 1.5*size), box(stroke: black, inset: 10pt, [$Z$ stabilizers],fill: color1, radius: 4pt))
 }
 #figure(canvas({
   import draw: *
@@ -278,6 +371,12 @@ caption: [
 
 == Experimental Proposal
 #zy[bullet points 12345678]
+
+== questions 
+- same p in different palce and time
+- p only depends on the operation
+- charactorise  error in calibration routine
+- atom loss
 
 #bibliography("refs.bib")
 
@@ -302,3 +401,18 @@ caption: [
   surface_code((0, 0), 5, 5)
     surface_code((5, 0), 5, 5,type_tag: false)
 }))
+
+== Appendix.B General Informationally complete measurements@d2004informationally
+Informationally complete measurements on a quantum system are those that allow us to estimate the state of the system with the measurement outcomes. Generally, a positive operator-valued measure (POVM) of Hillbert space $cal(H)$ is defined by a set of positive operators ${M_i}_(i=1)^n$ that satisfy the completeness relation $sum_i M_i = I$. The expectation value of any operator $A$ of state $rho$ is
+$
+angle.l A angle.r = tr(rho A).
+$
+Since the POVM is complete, we can write the expectation value of $A$ as the sum of the expectation values of $M_i$ 
+$
+angle.l A angle.r = sum_i f_i (A) tr(rho M_i),
+$ <eq:expec>
+where $f_i (A)$ are functions of $A$. @eq:expec holds for any operator $A$ and any state $rho$, therefore,
+$
+A = sum_i f_i (A) M_i.
+$
+This means that the set of POVM elements ${M_i}_(i=1)^n$ is spans the operator space of $cal(H)$.
