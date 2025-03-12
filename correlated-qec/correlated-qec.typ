@@ -24,6 +24,14 @@ We propose two key innovations to address this challenge:
 Tensor network methods provide a powerful framework for modeling correlated error channels in quantum circuits by leveraging their ability to efficiently represent high-dimensional quantum processes with structured correlations@torlai2023quantum. To train the model, the loss function is defined as the negative log-likelihood of the experimental data. Automatic differentiation@peterUnderPeterOMEinsumjl2025 and gradient descent@FluxMLOptimisersjl2025 are then employed to iteratively update the tensor network parameters, efficiently navigating the high-dimensional parameter space. 
 - Designing efficient decoders for these correlated models. 
 Once the error model is learned, these models demand decoding algorithms that account for multi-qubit correlations. We can formulate the decoding problem as a constrained optimization problem maximizing error likelihoods under syndrome constraints. Mixed-integer programming (MIP), a combinatorial optimization framework, emerges as a powerful candidate. The optimization problem can be reduced to a MIP problem@landahl2011fault@cain2024correlated and solved using state-of-the-art solvers.
+
+== The error correction threshold - the prior matters
+Knowing the error type is crutial for quantum error correction.
+The distribution of errors, if can be characterized as _prior_, will help us to design better error correction codes. The evidences include
+1. The atom loss can be corrected with the [[4,2,2]] code @Reichardt2024
+
+We propose using a probabilistic model $p(e)$ to characterize the error type. To be specific, we use the probability graph model $p(e) = product_(i in V) p(e_i) product_(i,j in E) p(e_i, e_j)$ to model the error distribution. For simplicity, we assume $V sect (union.big E) = emptyset$, i.e., the error only appear on single or two qubits, and they are not allowed to share variables. This simplification makes the error correction problem a MIP problem that can be solved in a reasonable time for small codes.
+
 == Correlated quantum channels
 
 We consider an error model where the errors are spatially correlated, often caused by the cross-talk between neighboring qubits.
@@ -377,6 +385,10 @@ caption: [
 - p only depends on the operation
 - charactorise  error in calibration routine
 - atom loss
+
+=== For experimentalists
+- Correlated noise: what is you feeling about error model? on gate or on connection? single qubit or two bit? What channel makes errors correlated? Do you have any tomography data?
+- Do you have any syndrome measurement data?
 
 #bibliography("refs.bib")
 
