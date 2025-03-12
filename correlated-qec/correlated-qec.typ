@@ -235,23 +235,16 @@ L = log p(e) & = log product p_i (bold(x)_i, bold(y)_i, bold(z)_i)\
 $
 with $p_(sigma i)$ denoting the probability of the $i$-th qubit being flipped by an error of type $sigma in {x,y,z}$. Now the objective function in @eq:p2 becomes a linear function of the error vectors $bold(x),bold(y),bold(z)$ with real coefficients. And the constraints are linear as well. This is a mixed-integer programming problem, which can be solved with state-of-the-art solvers.
 
-If the error distributions on different qubits are not independent, suppose that the error distribution of qubit $1$ and $2$ is a joint distribution $p_(1 2)$. This term in log-likelihood of the total error probability becomes
+If the error distributions on different qubits are not independent, suppose that the error distribution of qubit $1$ and $2$ is a joint distribution $p_(1 2)$. Then we use 16 variables $v_(sigma tau) in {0,1}, sigma, tau in {X,Y,Z,I}$ to represent the joint error distribution. This term in log-likelihood of the total error probability becomes
 $
-& log p_(1 2) (bold(x)_1, bold(y)_1, bold(z)_1, bold(x)_2, bold(y)_2, bold(z)_2)\ 
- = & bold(x)_1  bold(x)_2 log  p_(X X)  +  bold(x)_1  bold(y)_2 log  p_(X Y)  + bold(x)_1  bold(z)_2 log  p_(X Z)  ... \
- & + bold(x)_1  (1 - bold(x)_2 - bold(y)_2 - bold(z)_2) log  p_(X I)  +  (1 - bold(x)_1 - bold(y)_1 - bold(z)_1) bold(x)_2 log  p_(I X)  ... \
-  & + (1 - bold(x)_1 - bold(y)_1 - bold(z)_1) (1 - bold(x)_2 - bold(y)_2 - bold(z)_2) log  p_(I I) \
-= & sum c_(x_1 x_2) bold(x)_1 bold(x)_2  + sum c_(x_1) bold(x)_1 + c
+  log p_(1 2) = sum_( sigma, tau in {X,Y,Z,I}) v_(sigma tau) log p_(sigma tau)
 $
-where $c$ are constants. The result is a quadratic function of the error vectors $bold(x)_1,bold(y)_1,bold(z)_1$ and $bold(x)_2,bold(y)_2,bold(z)_2$ with real coefficients. To solve this problem we can use auxiliary variables to convert the quadratic terms into linear ones with linear constraints as follows.
+with the following constraint to ensure that there is excatly one of them is true
 $
-min quad &a b & & quad arrow.l.r.double.long quad & min quad & c &\ 
-"s.t." quad & a,b in {0,1} & &  & "s.t." quad & c <= a &\
-&&&&& c <= b\
-&&&&& c >= a + b - 1\
-&&&&& a,b,c in {0,1}\
+  sum_(sigma, tau in {X,Y,Z,I}) v_(sigma tau) = 1
 $
-For joint probability distributions on more qubits, the number of auxiliary variables of this same technique will increase exponentially. Here we only foucs on the two-qubit case.
+
+For joint probability distributions on more qubits, the number of variables of this same technique will increase exponentially. Here we only foucs on the two-qubit case.
 
 == Simlation Results
 #figure(canvas({
