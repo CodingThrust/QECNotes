@@ -3,6 +3,8 @@
 #import "@preview/quill:0.6.0": *
 #set math.equation(numbering: "(1)")
 
+#set heading(numbering: "1.")
+
 #let zy(it) = {
   text(orange, [[ZY: #it]])
 }
@@ -207,9 +209,9 @@ $
 $
 We can use the gradient-based optimization to train the parameters. The gradient of the loss function with respect to the parameters is achieved by automatic differentiation of tensor networks.
 
-== Correlated Quantum Decoder
+== Correlated Quantum Decoder <sec:co_decoder>
 Suppose we have the error distribution $p(e)$ and the syndrome $s$ measured from the quantum circuit. The goal is to find the most likely error $e$ that causes the syndrome $s$.
-This can be formulated as the following optimization problem
+This can be formulated as the following optimization problem 
 $
 max quad &p(e)\
 "s.t." quad & s(e) = s\
@@ -288,7 +290,7 @@ caption: [
 caption: [
   #zy[Caption]
 ]) 
-
+Here we consider two surface codes with code distance $d$. The CNOT gate between them can be achieved by lattice surgery, which consists of CNOT gates on the boundary qubits. @fig:lattice-surgery shows an example for $d = 5$ surface code.
 #let surface_code(loc, m, n, size:1, color1:yellow, color2:aqua,number_tag:false,type_tag:true) = {
   import draw: *
   for i in range(m){
@@ -348,8 +350,8 @@ caption: [
 }
 #figure(canvas({
   import draw: *
-  surface_code((0, 0), 5, 5)
-  surface_code((5, 0), 5, 5,color1: aqua,color2:yellow, type_tag: false)
+  surface_code((0, 0), 5, 5,color1: aqua,color2:yellow)
+  surface_code((5, 0), 5, 5,color1: aqua,color2:yellow)
   surface_code_label((12,3))
   for i in range(5){
     circle((4, i), radius: 0.1, fill: red, stroke: none, name: "control" + str(i))
@@ -359,9 +361,21 @@ caption: [
     line((5, i - 0.2), (5, i + 0.2), stroke: red)
   }
 }),caption: [
-  #zy[Caption]
-])
+  CNOT gate between two surface codes with code distance $d = 5$.
+]) <fig:lattice-surgery>
+We assume the error model for the CNOT-operated qubit pairs is highly correlated: with probability $1-p$ and with error probability $p/3$ the error manifests as $X_1X_2$, $Y_1Y_2$, or $Z_1Z_2$. The error channel can be written as
+$
+cal(E)_(1 2)(rho) = (1-p) rho + p/3 X_1X_2 rho X_2X_1 + p/3 Y_1Y_2 rho Y_2Y_1 + p/3 Z_1Z_2 rho Z_2Z_1
+$
+For the qubits that are not acted by the CNOT gates, we assume that the error models of them are independent and the error probability is slightly lower than the qubit pairs that are acted by the CNOT gates. The error channel can be written as
+$
+cal(E)_1(rho) = (1-(3p)/5) rho + p/5 X rho X + p/5 Y rho Y + p/5 Z rho Z
+$
+We test this error model for two mixed-integer programming decoders: a conventional one with independent error models and a correlated one described in @sec:co_decoder. The results are shown in @fig:correlated. 
 
+#figure(image("images/correlated.svg", width: 70%),caption: [
+  Comparison of the conventional and correlated decoders for different code distance surface code. The x-axis is the physical error probability $p$ and the y-axis is the logical error rate. The solid line is the conventional decoder and the dashed line is the correlated decoder. 
+]) <fig:correlated>
 == Experimental Proposal
 #zy[bullet points 12345678]
 
