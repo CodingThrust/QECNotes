@@ -14,7 +14,7 @@
 }
 
 #align(center)[
-= Quantum Error Correction with Spatially Correlated Errors
+= Physics Informed Quantum Error Correction
 _Zhongyi Ni_, _Jinguo Liu_
 ]
 
@@ -257,47 +257,29 @@ $
 For joint probability distributions on more qubits, the number of variables of this same technique will increase exponentially. Here we only foucs on the two-qubit case.
 
 == Simlation Results
+=== Error model learning
+We consider a simple error model where the error on single qubit with pauli error probability $p_x = 0.15, p_y = 0.10, p_z = 0.05$. The error channel is as follows
+$
+cal(E)_1(rho) = (1-p_x-p_y-p_z) rho + p_x X rho X + p_y Y rho Y + p_z Z rho Z
+$
+We use the following quantum circuit to learn this error model.
 #figure(canvas({
   import draw: *
   let s(it) = text(11pt, it)
   content((0, 0), quantum-circuit(
-    lstick($|0〉$),  $U$,2,meter()
-  ))
-    content((5, 0), quantum-circuit(
-    lstick($|0〉$), mqgate($U$, n:2),1,1,meter(),[\ ],
-    lstick($|0〉$),3,meter(),
-  ))
-  circle((0.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_1")
-  circle((5.4, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_2")
-  content((rel: (0, 0.3), to: "E_1"), s[$cal(E)_1$])
-  content((rel: (0.3, 0), to: "E_2"), s[$cal(E)_(1 2)$])
-}), 
-caption: [
-  #zy[Caption]
-]) 
-
-#figure(canvas({
-  import draw: *
-  let s(it) = text(11pt, it)
-  content((0, 0), quantum-circuit(
-    lstick($|0〉$),  $U_1$,2,$U_2$,2,meter()
-  ))
-    content((7, 0), quantum-circuit(
-    lstick($|0〉$), mqgate($U_1$, n:2),2, mqgate($U_2$, n:2),2,meter(),[\ ],
-    lstick($|0〉$),6,meter(),
+    lstick($|0angle.r$),  $U_1$,2,$U_2$,2,meter() //,rstick($|0angle.r \/ |1angle.r$)
   ))
   circle((1.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_1")
   circle((-0.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_12")
-  circle((6.5, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_2")
-  circle((8.5, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_22")
   content((rel: (0, 0.3), to: "E_1"), s[$cal(E)_1$])
   content((rel: (0, 0.3), to: "E_12"), s[$cal(E)_1$])
-  content((rel: (0.3, 0), to: "E_2"), s[$cal(E)_(1 2)$])
-    content((rel: (0.3, 0), to: "E_22"), s[$cal(E)_(1 2)$])
-}), 
-caption: [
-  #zy[Caption]
-]) 
+})) 
+where $U_1$ and $U_2$ are random unitaries and the measurement is only performed under the $|0 angle.r$ and $|1 angle.r$ basis. The learning data is from $5$ different circuit like above. The results are shown in @fig:train.
+
+#figure(image("images/train.svg", width: 70%),caption: [
+  The learning results of the error model. The x-axis is iteration number and the y-axis is the error rate and the gradient norm.
+]) <fig:train>
+=== Correlated error decoding
 Here we consider two surface codes with code distance $d$. The CNOT gate between them can be achieved by lattice surgery, which consists of CNOT gates on the boundary qubits. @fig:lattice-surgery shows an example for $d = 5$ surface code.
 #let surface_code(loc, m, n, size:1, color1:yellow, color2:aqua,number_tag:false,type_tag:true) = {
   import draw: *
@@ -420,6 +402,49 @@ We test this error model for two mixed-integer programming decoders: a conventio
   surface_code((0, 0), 5, 5)
     surface_code((5, 0), 5, 5,type_tag: false)
 }))
+
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((0, 0), quantum-circuit(
+    lstick($|0〉$),  $U$,2,meter()
+  ))
+    content((5, 0), quantum-circuit(
+    lstick($|0〉$), mqgate($U$, n:2),1,1,meter(),[\ ],
+    lstick($|0〉$),3,meter(),
+  ))
+  circle((0.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_1")
+  circle((5.4, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_2")
+  content((rel: (0, 0.3), to: "E_1"), s[$cal(E)_1$])
+  content((rel: (0.3, 0), to: "E_2"), s[$cal(E)_(1 2)$])
+}), 
+caption: [
+  #zy[Caption]
+]) 
+
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((0, 0), quantum-circuit(
+    lstick($|0〉$),  $U_1$,2,$U_2$,2,meter()
+  ))
+    content((7, 0), quantum-circuit(
+    lstick($|0〉$), mqgate($U_1$, n:2),2, mqgate($U_2$, n:2),2,meter(),[\ ],
+    lstick($|0〉$),6,meter(),
+  ))
+  circle((1.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_1")
+  circle((-0.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_12")
+  circle((6.5, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_2")
+  circle((8.5, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_22")
+  content((rel: (0, 0.3), to: "E_1"), s[$cal(E)_1$])
+  content((rel: (0, 0.3), to: "E_12"), s[$cal(E)_1$])
+  content((rel: (0.3, 0), to: "E_2"), s[$cal(E)_(1 2)$])
+    content((rel: (0.3, 0), to: "E_22"), s[$cal(E)_(1 2)$])
+}), 
+caption: [
+  #zy[Caption]
+]) 
 
 == Appendix.B General Informationally complete measurements@d2004informationally
 Informationally complete measurements on a quantum system are those that allow us to estimate the state of the system with the measurement outcomes. Generally, a positive operator-valued measure (POVM) of Hillbert space $cal(H)$ is defined by a set of positive operators ${M_i}_(i=1)^n$ that satisfy the completeness relation $sum_i M_i = I$. The expectation value of any operator $A$ of state $rho$ is
