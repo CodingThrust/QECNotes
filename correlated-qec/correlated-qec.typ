@@ -22,7 +22,7 @@ _Zhongyi Ni_, _Jinguo Liu_
 Traditional QEC schemes, such as the surface code and stabilizer formalism, predominantly assume independent error models, where qubit errors occur uncorrelated in space and time. These models underpin the theoretical promise of thresholds and code distances, ensuring protection against a fixed number of errors@gottesman1997stabilizer. However, real-world quantum hardware—including superconducting circuits@gambetta2012characterization, trapped ions@ballance2016high, and photonic systems@kok2007linear—exhibits correlated errors that defy these assumptions. Examples include crosstalk between adjacent qubits during simultaneous gate operations@krinner2019engineering, spatially correlated noise in lattices@grondalski1999spatial, and joint errors following entangling gates like CNOT@erhard2019characterizing. Such correlations degrade the performance of conventional decoders, which are ill-equipped to handle complex error syndromes arising from these dependencies.  
 
 We propose two key innovations to address this challenge:
-- Learning device-specific error models from experimental data 
+- #highlight([Learning device-specific error models from experimental data])
 Tensor network methods provide a powerful framework for modeling correlated error channels in quantum circuits by leveraging their ability to efficiently represent high-dimensional quantum processes with structured correlations@torlai2023quantum. To train the model, the loss function is defined as the negative log-likelihood of the experimental data. Automatic differentiation@peterUnderPeterOMEinsumjl2025 and gradient descent@FluxMLOptimisersjl2025 are then employed to iteratively update the tensor network parameters, efficiently navigating the high-dimensional parameter space. 
 - Designing efficient decoders for these correlated models. 
 Once the error model is learned, these models demand decoding algorithms that account for multi-qubit correlations. We can formulate the decoding problem as a constrained optimization problem maximizing error likelihoods under syndrome constraints. Mixed-integer programming (MIP), a combinatorial optimization framework, emerges as a powerful candidate. The optimization problem can be reduced to a MIP problem@landahl2011fault@cain2024correlated and solved using state-of-the-art solvers.
@@ -366,18 +366,32 @@ We test this error model for two mixed-integer programming decoders: a conventio
 #figure(image("images/correlated.svg", width: 70%),caption: [
   Comparison of the conventional and correlated decoders for different code distance surface code. The x-axis is the physical error probability $p$ and the y-axis is the logical error rate. The solid line is the conventional decoder and the dashed line is the correlated decoder. 
 ]) <fig:correlated>
-== Experimental Proposal
-#zy[bullet points 12345678]
-
-== questions 
-- same p in different palce and time
-- p only depends on the operation
-- charactorise  error in calibration routine
-- atom loss
 
 === For experimentalists
 - Correlated noise: what is you feeling about error model? on gate or on connection? single qubit or two bit? What channel makes errors correlated? Do you have any tomography data?
 - Do you have any syndrome measurement data?
+
+- data: 
+1. Simple circuit with as many shots as possible with qubit number < 20, like
+#figure(canvas({
+  import draw: *
+  let s(it) = text(11pt, it)
+  content((0, 0), quantum-circuit(
+    lstick($|0〉$),  $U_1$,2,$U_2$,2,meter()
+  ))
+    content((7, 0), quantum-circuit(
+    lstick($|0〉$), mqgate($U_1$, n:2),2, mqgate($U_2$, n:2),2,meter(),[\ ],
+    lstick($|0〉$),6,meter(),
+  ))
+  circle((1.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_1")
+  circle((-0.45, 0), radius: 0.1, fill: red, stroke: none, name: "E_12")
+  circle((6.5, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_2")
+  circle((8.5, 0), radius: (0.1, 0.7), fill: red, stroke: none, name: "E_22")
+  content((rel: (0, 0.3), to: "E_1"), s[$cal(E)_1$])
+  content((rel: (0, 0.3), to: "E_12"), s[$cal(E)_1$])
+  content((rel: (0.3, 0), to: "E_2"), s[$cal(E)_(1 2)$])
+    content((rel: (0.3, 0), to: "E_22"), s[$cal(E)_(1 2)$])
+})) 
 
 #bibliography("refs.bib")
 
