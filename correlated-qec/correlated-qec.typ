@@ -1,5 +1,5 @@
 #show link: set text(blue)
-#import "@preview/cetz:0.2.2": canvas, draw, tree
+#import "@preview/cetz:0.3.4": canvas, draw, tree
 #import "@preview/quill:0.6.0": *
 #set math.equation(numbering: "(1)")
 
@@ -279,8 +279,64 @@ where $U_1$ and $U_2$ are random unitaries and the measurement is only performed
 #figure(image("images/train.svg", width: 70%),caption: [
   The learning results of the error model. The x-axis is iteration number and the y-axis is the error rate and the gradient norm.
 ]) <fig:train>
+
+=== Error decoding with independent prior
+We use Steane code as an example to show the importance of prior in error decoding. Logical operators of the Steane code can be performed at the boundary of the code
+$
+  overline(X) = X_1 X_2 X_3, overline(Z) = Z_1 Z_2 Z_3
+$
+
+#let steane_code(loc,size:4, color1:yellow, color2:aqua,color3:olive) = {
+  import draw: *
+  let x = loc.at(0) 
+  let y = loc.at(1)
+  circle((x,y), name: "q7", radius: 0.03 * size, fill: black, stroke: none)
+  circle((x,y + size), name: "q4",  radius: 0.03 * size, fill: black, stroke: none)
+  circle((x,y - size/2), name: "q2",  radius: 0.03 * size, fill: black, stroke: none)
+  circle((x + calc.sqrt(3)*size/4,y + size/4), name: "q6", radius: 0.03 * size, fill: black, stroke: none)
+  circle((x - calc.sqrt(3)*size/4,y + size/4), name: "q5",  radius: 0.03 * size, fill: black, stroke: none)
+  circle((x + calc.sqrt(3)*size/2,y  - size/2), name: "q3",  radius: 0.03 * size, fill: black, stroke: none)
+  circle((x - calc.sqrt(3)*size/2,y  - size/2), name: "q1",  radius: 0.03 * size, fill: black, stroke: none)
+
+  let xb = 0.1*size
+  let yb = 0.1*size
+
+
+  line("q1", "q2","q7","q5","q1", fill: color1,close: true, stroke: black)
+  line("q2", "q3","q6","q7","q2", fill: color2,close: true, stroke: black)
+  line("q4", "q5","q7","q6","q4", fill: color3,close: true, stroke: black)
+
+  circle("q1", radius: 0.03 * size, fill: black, stroke: none)
+  circle("q2", radius: 0.03 * size, fill: black, stroke: none)
+  circle("q3", radius: 0.03 * size, fill: black, stroke: none)
+  circle("q4", radius: 0.03 * size, fill: black, stroke: none)
+  circle("q5", radius: 0.03 * size, fill: black, stroke: none)
+  circle("q6", radius: 0.03 * size, fill: black, stroke: none)
+  circle("q7", radius: 0.03 * size, fill: black, stroke: none)
+
+  content((rel: (0, yb), to: "q1"), [$1$])
+  content((rel: (-xb, yb), to: "q2"), [$2$])
+  content((rel: (0, yb), to: "q3"), [$3$])
+  content((rel: (0, yb), to: "q4"), [$4$])
+  content((rel: (0, yb), to: "q5"), [$5$])
+  content((rel: (0, yb), to: "q6"), [$6$])
+  content((rel: (0, yb), to: "q7"), [$7$])
+}
+#figure(canvas({
+  import draw: *
+  steane_code((0, 0))
+  circle((0, - 2), radius: 0.2, fill: red, stroke: none)
+  circle((calc.sqrt(3)*2, - 2), radius: 0.2, fill: red, stroke: none)
+  circle((-calc.sqrt(3)*2, - 2), radius: 0.2, fill: red, stroke: none)
+  }))
+Suppose we just apply a logical operator on physical qubits $1,2,3$. The error probability of these qubits is $p$, and the error probability of the other idling qubits is $p/10$. We test this error model for two mixed-integer programming decoders: a conventional one with independent error models and a correlated one described in @sec:co_decoder. The results are shown in @fig:prior. 
+#figure(image("images/prior.svg", width: 70%),caption: [
+  Comparison of the conventional and correlated decoders for different code distance surface code. The x-axis is the physical error probability $p$ and the y-axis is the logical error rate. The solid line is the conventional decoder and the dashed line is the correlated decoder. 
+]) <fig:prior>
+
 === Correlated error decoding
 Here we consider two surface codes with code distance $d$. The CNOT gate between them can be achieved by lattice surgery, which consists of CNOT gates on the boundary qubits. @fig:lattice-surgery shows an example for $d = 5$ surface code.
+
 #let surface_code(loc, m, n, size:1, color1:yellow, color2:aqua,number_tag:false,type_tag:true) = {
   import draw: *
   for i in range(m){
@@ -368,7 +424,7 @@ We test this error model for two mixed-integer programming decoders: a conventio
 ]) <fig:correlated>
 
 === For experimentalists
-- Correlated noise: what is you feeling about error model? on gate or on connection? single qubit or two bit? What channel makes errors correlated? Do you have any tomography data?
+- Correlated noise: what is you feeling about error model? on gate or on connection? single qubit or two qubits? What channel makes errors correlated? Do you have any tomography data?
 - Do you have any syndrome measurement data?
 
 - data: 
@@ -414,7 +470,7 @@ We test this error model for two mixed-integer programming decoders: a conventio
 #figure(canvas({
   import draw: *
   surface_code((0, 0), 5, 5)
-    surface_code((5, 0), 5, 5,type_tag: false)
+    surface_code((5, 0), 9, 5,type_tag: false)
 }))
 
 
