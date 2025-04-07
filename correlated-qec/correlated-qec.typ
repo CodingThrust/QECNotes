@@ -1,5 +1,5 @@
 #show link: set text(blue)
-#import "@preview/cetz:0.3.4": canvas, draw, tree
+#import "@preview/cetz:0.2.2": canvas, draw, tree
 #import "@preview/quill:0.6.0": *
 #set math.equation(numbering: "(1)")
 
