@@ -74,13 +74,19 @@ _Zhongyi Ni_, _Jinguo Liu_
   content((x, y - 1.5*size), box(stroke: black, inset: 10pt, [$Z$ stabilizers],fill: color1, radius: 4pt))
 }
 == Simple Markov Chain Monte Carlo
-#figure(canvas({
+#figure(canvas(length: 0.9cm, {
   import draw: *
   surface_code((0, 0), 5, 5,color1: aqua,color2:yellow)
   surface_code_label((7,3))
+  rect((1, 1), (2, 2), stroke:(paint: red.darken(30%), thickness: 2pt))
+  content((1.5, 1.5), text(14pt, red)[$R_1$])
+  line((0, 4), (4, 0), stroke:(paint: blue.darken(30%), thickness: 2pt))
+  content((1.7, 2.7), text(14pt, blue)[$R_2$])
   circle((1.5, 0.5), radius: 0.1, fill: red, stroke: none)
   circle((3.5, 2.5), radius: 0.1, fill: red, stroke: none)
-}), caption: [Surface code with code distance 5. The red dots are the error syndrome.]) <fig:lattice-surgery>
+}), caption: [Surface code with code distance 5. The red dots are the error syndrome.
+The red lines are the update rules that does not change the logic state, while the blue lines are the update rules that changes the logic state.
+]) <fig:lattice-surgery>
 
 Let $cal(S) = {s_1, s_2, dots, s_m}$ be the set of stabilizers, $cal(Q) = {q_1, q_2, dots, q_n}$ be the set of logical $X$ and $Z$ operators for qubits.
 1. Create a random error configuration $sigma$ that associates the error syndrome to logic state $0$.
@@ -95,13 +101,11 @@ Let $cal(S) = {s_1, s_2, dots, s_m}$ be the set of stabilizers, $cal(Q) = {q_1, 
   where $E(sigma)$ is the "energy" of the error configuration $sigma$ given by the error model. The energy is defined as the log of the probability of the error configuration $sigma$ given by the error model.
 3. $p_0\/p_1$ could be estimated by the ratio of the number of logical state 0 and 1 in the simulation.
 
-== Parallel Tempering for free energy estimation
+== The $beta$-swap update
 
 The problem of the simple Markov Chain Monte Carlo is that the acceptance ratio is very low, because the logical state 0 and 1 are highly nonlocal. Changing the logical state from 0 to 1 is very unlikely.
-
-We adopt the free energy estimator proposed in @Lyubartsev1992, which is based on multiple replicas of the system at different temperatures.
-
-We modifty ensemble with the partition function,
+We adopt the free energy estimator proposed in @Lyubartsev1992, which is based on evolving the system at different temperatures.
+In this scheme, we modifty the ensemble with the partition function,
 $
   sum_(m=1)^M Z= Z_m e^(eta_m)
 $
@@ -109,18 +113,28 @@ where $Z_m$ is the partition function of the system at temperature $beta_m$, and
 
 #figure(canvas({
   import draw: *
-  line((0, 0), (0, 5), stroke: black, mark: (end: "straight"))
-  content((-0.8, 0), [$beta_L = 1$])
-  content((-1.0, 5), [$beta_H arrow 1/T_H$])
-  circle((1.5, 0.5), radius: 0.3, fill: none, stroke: black, name: "low")
-  circle((1.5, 4.5), radius: 0.3, fill: none, stroke: black, name: "high")
-  bezier("high.east", "high.north", (rel: (1, 0.5), to: "high"), (rel: (0.5, 1), to: "high"), mark: (end: "straight"))
-  content((3.5, 5), [Regular update])
-  bezier("low.east", "low.south", (rel: (1, -0.5), to: "low"), (rel: (0.5, -1), to: "low"), mark: (end: "straight"))
-  content((3.5, 1), [Regular update])
-  line("low", "high", mark: (end: "straight", start: "straight"))
-  content((2.5, 2.5), [$beta_L arrow.l.r beta_H$])
-}), caption: [Two types of updates (regular and $beta$-swap) in parallel tempering scheme for free energy estimation.]) <fig:lattice-surgery>
+  content((0.2, 0.5), [$beta_L = 1$])
+  content((0.0, 4.5), [$beta_H = 0.1$])
+  for (dx, state) in ((0, "0"), (3, "1")){
+    let lname = "low" + state
+    let hname = "high" + state
+    circle((1.5 + dx, 0.5), radius: 0.3, fill: none, stroke: black, name: lname)
+    circle((1.5 + dx, 4.5), radius: 0.3, fill: none, stroke: black, name: hname)
+    bezier(hname + ".east", hname + ".north", (rel: (1, 0.5), to: hname), (rel: (0.5, 1), to: hname), mark: (end: "straight"))
+    bezier(lname + ".east", lname + ".south", (rel: (1, -0.5), to: lname), (rel: (0.5, -1), to: lname), mark: (end: "straight"))
+    line(lname, hname, mark: (end: "straight", start: "straight"))
+  }
+  content((5.5, 5), [$R_1$])
+  content((5.5, 0), [$R_1$])
+  line("low0", "low1", mark: (end: "straight", start: "straight"), stroke: (dash: "dashed"), name: "ll")
+  line("high0", "high1", mark: (end: "straight", start: "straight"), name: "lh")
+  content((rel: (0, 0.3), to:"ll.mid"), [small rate])
+  content((rel: (0, -0.3), to:"lh.mid"), [$R_2$])
+  content((5.5, 2.5), [$beta_L arrow.l.r beta_H$])
+}), caption: [Three types of updates in scheme of free energy estimation.
+$R_1$ is the transition inside the same logic sector, $R_2$ is the transition between different logic sectors, and $R_3$ is the $beta$-swap update that changes the temperature of the system.
+The $beta_L$ and $beta_H$ are the inverse temperatures of the low and high temperature, respectively.
+]) <fig:lattice-surgery>
 
 The $beta$-swap update rule is defined as
 - $R_3$: $(sigma, beta) arrow (sigma, beta')$ with probability
@@ -142,11 +156,10 @@ $
 p_m/(p_k) =  Z_m/Z_k e^(eta_m -eta_k)  = e^(- beta_m F_m + beta_k F_k + eta_m - eta_k)
 $ <eq:free-energy-relation>
 Thus we can obtain difference of free energies for any arbitrary pair of temperatures.
-The case $beta = 0$ corresponds to the ideal gas (since the interaction is switched off) and the partition function is known exactly (the case ofthe hard core will be discussed later).
-
-
-A good choice of $eta_m$ should allow free transition between different temperatures, which is satisfied by $eta_m$ = $beta_m F_m$.
-It can be determined by running a few MC steps and estimate $F_m$ with @eq:free-energy-relation.
+The case $beta = 0$ corresponds to the ideal gas (since the interaction is switched off) and the partition function is known exactly.
+A good choice of $eta_m$ should allow free transition between different temperatures, which is satisfied by
+$ eta_m = beta_m F_m, $ <eq:eta-m>
+which can be determined by running a few MC steps and estimate $F_m$ with @eq:free-energy-relation.
 
 == An empirical parameter setup
 
@@ -154,8 +167,8 @@ It can be determined by running a few MC steps and estimate $F_m$ with @eq:free-
   - $R_1$: $0.9|cal(S)|\/(|cal(S)|+|cal(Q)|)$
   - $R_2$: $0.9|cal(Q)|\/(|cal(S)|+|cal(Q)|)$
   - $R_3$: $0.1$
-- The number of replicas:
-  - $N_beta = 2$, $(beta_1, eta_1) = (1, 0)$, $(beta_2, eta_2) = (0.1, 3.0)$
+- The number of temperature levels:
+  - $N_beta = 2$, $beta_1 = 1$, $beta_2 = 0.1$, $eta$ is set automatically with @eq:eta-m
 - The number of sweeps:
   - $N = 10000$
 
