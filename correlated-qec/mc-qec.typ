@@ -101,6 +101,12 @@ The problem of the simple Markov Chain Monte Carlo is that the acceptance ratio 
 
 We adopt the free energy estimator proposed in @Lyubartsev1992, which is based on multiple replicas of the system at different temperatures.
 
+We modifty ensemble with the partition function,
+$
+  sum_(m=1)^M Z= Z_m e^(eta_m)
+$
+where $Z_m$ is the partition function of the system at temperature $beta_m$, and $eta_m$ is a parameter to be determined.
+
 #figure(canvas({
   import draw: *
   line((0, 0), (0, 5), stroke: black, mark: (end: "straight"))
@@ -125,7 +131,25 @@ The $beta$-swap update rule is defined as
 
 The $p_0\/p_1$ could be estimated by the ratio of the number of logical state 0 and 1 in the simulation when $beta = beta_L$.
 
+=== Decide $eta_m$ (for temperature $beta_m$) with the free energy
+
+In the course of the MC procedure we calculate (for each "$m$") $n_m$-the numbers of MC steps for which the
+temperature holds equal to $1\/beta_m$ As a result the estimation of the probability for the state with this temperature is obtained: $p_m ~ n_m\/n$ ($n$-total length of the MC chain).
+We have
+$ p_m = Z_m e^(eta^m)\/Z $
+and hence
+$
+p_m/(p_k) =  Z_m/Z_k e^(eta_m -eta_k)  = e^(- beta_m F_m + beta_k F_k + eta_m - eta_k)
+$ <eq:free-energy-relation>
+Thus we can obtain difference of free energies for any arbitrary pair of temperatures.
+The case $beta = 0$ corresponds to the ideal gas (since the interaction is switched off) and the partition function is known exactly (the case ofthe hard core will be discussed later).
+
+
+A good choice of $eta_m$ should allow free transition between different temperatures, which is satisfied by $eta_m$ = $beta_m F_m$.
+It can be determined by running a few MC steps and estimate $F_m$ with @eq:free-energy-relation.
+
 == An empirical parameter setup
+
 - The proposal rate of update rules:
   - $R_1$: $0.9|cal(S)|\/(|cal(S)|+|cal(Q)|)$
   - $R_2$: $0.9|cal(Q)|\/(|cal(S)|+|cal(Q)|)$
