@@ -74,6 +74,9 @@ _Zhongyi Ni_, _Jinguo Liu_
   content((x, y - 1.5*size), box(stroke: black, inset: 10pt, [$Z$ stabilizers],fill: color1, radius: 4pt))
 }
 == Simple Markov Chain Monte Carlo
+This note introduces a Markov Chain Monte Carlo (MCMC) method to estimate the logical error,
+which has fast mixing time.
+
 #figure(canvas(length: 0.9cm, {
   import draw: *
   surface_code((0, 0), 5, 5,color1: aqua,color2:yellow)
@@ -113,24 +116,27 @@ where $Z_m$ is the partition function of the system at temperature $beta_m$, and
 
 #figure(canvas({
   import draw: *
+  let dy = 4
   content((0.2, 0.5), [$beta_L = 1$])
-  content((0.0, 4.5), [$beta_H = 0.1$])
+  content((0.0, dy - 0.5), [$beta_H = 0.5$])
   for (dx, state) in ((0, "0"), (3, "1")){
     let lname = "low" + state
     let hname = "high" + state
     circle((1.5 + dx, 0.5), radius: 0.3, fill: none, stroke: black, name: lname)
-    circle((1.5 + dx, 4.5), radius: 0.3, fill: none, stroke: black, name: hname)
-    bezier(hname + ".east", hname + ".north", (rel: (1, 0.5), to: hname), (rel: (0.5, 1), to: hname), mark: (end: "straight"))
+    circle((1.5 + dx, dy - 0.5), radius: 0.3, fill: none, stroke: black, name: hname)
+    bezier(hname + ".east", hname + ".south", (rel: (1, -0.5), to: hname), (rel: (0.5, -1), to: hname), mark: (end: "straight"))
     bezier(lname + ".east", lname + ".south", (rel: (1, -0.5), to: lname), (rel: (0.5, -1), to: lname), mark: (end: "straight"))
     line(lname, hname, mark: (end: "straight", start: "straight"))
+    line(hname, (rel: (0, 1.5), to: hname), stroke: (dash: "dashed"))
+    content((dx + 1.5, -0.5), [Logic state: #state])
   }
-  content((5.5, 5), [$R_1$])
+  content((5.5, dy - 1), [$R_1$])
   content((5.5, 0), [$R_1$])
   line("low0", "low1", mark: (end: "straight", start: "straight"), stroke: (dash: "dashed"), name: "ll")
   line("high0", "high1", mark: (end: "straight", start: "straight"), name: "lh")
   content((rel: (0, 0.3), to:"ll.mid"), [small rate])
   content((rel: (0, -0.3), to:"lh.mid"), [$R_2$])
-  content((5.5, 2.5), [$beta_L arrow.l.r beta_H$])
+  content((6, dy/2), [$R_3: beta_L arrow.l.r beta_H$])
 }), caption: [Three types of updates in scheme of free energy estimation.
 $R_1$ is the transition inside the same logic sector, $R_2$ is the transition between different logic sectors, and $R_3$ is the $beta$-swap update that changes the temperature of the system.
 The $beta_L$ and $beta_H$ are the inverse temperatures of the low and high temperature, respectively.
@@ -150,7 +156,7 @@ The $p_0\/p_1$ could be estimated by the ratio of the number of logical state 0 
 In the course of the MC procedure we calculate (for each "$m$") $n_m$-the numbers of MC steps for which the
 temperature holds equal to $1\/beta_m$ As a result the estimation of the probability for the state with this temperature is obtained: $p_m ~ n_m\/n$ ($n$-total length of the MC chain).
 We have
-$ p_m = Z_m e^(eta^m)\/Z $
+$ p_m = Z_m e^(eta_m)\/Z $
 and hence
 $
 p_m/(p_k) =  Z_m/Z_k e^(eta_m -eta_k)  = e^(- beta_m F_m + beta_k F_k + eta_m - eta_k)
@@ -168,7 +174,7 @@ which can be determined by running a few MC steps and estimate $F_m$ with @eq:fr
   - $R_2$: $0.9|cal(Q)|\/(|cal(S)|+|cal(Q)|)$
   - $R_3$: $0.1$
 - The number of temperature levels:
-  - $N_beta = 2$, $beta_1 = 1$, $beta_2 = 0.1$, $eta$ is set automatically with @eq:eta-m
+  - $N_beta = 2$, $beta = 1, 0.5, 0$, and $eta$ is set automatically with @eq:eta-m
 - The number of sweeps:
   - $N = 10000$
 
