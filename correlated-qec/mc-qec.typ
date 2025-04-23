@@ -83,12 +83,12 @@ which has fast mixing time.
   surface_code_label((7,3))
   rect((1, 1), (2, 2), stroke:(paint: red.darken(30%), thickness: 2pt))
   content((1.5, 1.5), text(14pt, red)[$R_1$])
-  line((0, 4), (4, 0), stroke:(paint: blue.darken(30%), thickness: 2pt))
-  content((1.7, 2.7), text(14pt, blue)[$R_2$])
+  line((4, 4), (4, 0), stroke:(paint: green, thickness: 2pt))
+  content((4.7, 2.2), text(14pt, green)[$R_2$])
   circle((1.5, 0.5), radius: 0.1, fill: red, stroke: none)
   circle((3.5, 2.5), radius: 0.1, fill: red, stroke: none)
 }), caption: [Surface code with code distance 5. The red dots are the error syndrome.
-The red lines are the update rules that does not change the logic state, while the blue lines are the update rules that changes the logic state.
+The red circle is the update rule that does not change the logic state, while the green line are the update rules that changes the logic state.
 ]) <fig:lattice-surgery>
 
 Let $cal(S) = {s_1, s_2, dots, s_m}$ be the set of stabilizers, $cal(Q) = {q_1, q_2, dots, q_n}$ be the set of logical $X$ and $Z$ operators for qubits.
@@ -178,4 +178,6 @@ which can be determined by running a few MC steps and estimate $F_m$ with @eq:fr
 - The number of sweeps:
   - $N = 10000$
 
+== Limitations of IP for QEC
+IP performs much worse when the error rate is high. 
 #bibliography("refs.bib")
