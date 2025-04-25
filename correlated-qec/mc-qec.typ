@@ -104,6 +104,30 @@ Let $cal(S) = {s_1, s_2, dots, s_m}$ be the set of stabilizers, $cal(Q) = {q_1, 
   where $E(sigma)$ is the "energy" of the error configuration $sigma$ given by the error model. The energy is defined as the log of the probability of the error configuration $sigma$ given by the error model.
 3. $p_0\/p_1$ could be estimated by the ratio of the number of logical state 0 and 1 in the simulation.
 
+== Paper Review
+1. Statistical mechanical models for quantum codes with correlated noise@chubb2021statistical
+- "Complementing this, we show that the mapping also allows us to utilise any algorithm which can calculate/approximate partition functions of classical  statistical mechanical models to perform optimal/approximately optimal decoding."
+- Error correction threshold $arrow.l.r$ Phase transition.
+- Phase diagram. Nishimori condition.
+2. Comparative study of decoding the surface code using simulated annealing under depolarizing noise@takeuchi2023comparative
+- Restrict to Ising model. Map many-body term to two-body term with qubo.
+- Compare between soft and hard constraints of sa decoder.
+- Only surface code, code capacity noise.
+- CPLEX for MIP, OpenJij for SA. Sa is slightly slower than MIP. Error rate is higher than MIP.
+- ML? MP?
+- Simple algorithm to find a error pattern satisfies the constraint for surface code.
+- iid error model. Minimize the number of errors. 
+
+3. Ising model formulation for highly accurate topological color codes decoding@takada2024ising
+- $d = 3,5,7,11$ color code. Bit-flip, depolarizing and phenomenological noise. Code capacity noise.
+- Similar setting as@takeuchi2023comparative.
+- Comparing with MIP, SA is faster and has a similar error rate.
+
+4. Near-optimal decoding algorithm for color codes using Population Annealing@martinez2024near
+- Population annealing.
+- Color code with $d$ up to 19. Bit-flip, depolarizing and phenomenological noise. Code capacity noise.
+- No comparison with other decoder?
+
 == The $beta$-swap update
 
 The problem of the simple Markov Chain Monte Carlo is that the acceptance ratio is very low, because the logical state 0 and 1 are highly nonlocal. Changing the logical state from 0 to 1 is very unlikely.

@@ -337,52 +337,39 @@ Suppose we just apply a logical operator on physical qubits $1,2,3$. The error p
 === Correlated error decoding
 Here we consider two surface codes with code distance $d$. The CNOT gate between them can be achieved by lattice surgery, which consists of CNOT gates on the boundary qubits. @fig:lattice-surgery shows an example for $d = 5$ surface code.
 
-#let surface_code(loc, m, n, size:1, color1:yellow, color2:aqua,number_tag:false,type_tag:true) = {
+
+#let surface_code(loc, m, n, size:1, color1:yellow, color2:aqua, name: "surface", type_tag:true) = {
   import draw: *
   for i in range(m){
     for j in range(n){
       let x = loc.at(0) + i * size
       let y = loc.at(1) + j * size
-      if (i != m - 1) and (j != n - 1){
-        if (calc.rem(i + j, 2) == 0){
-          if type_tag{
-           if (i == 0){
-            bezier((x, y), (x, y + size), (x - size * 0.7, y + size/2), fill: color2, stroke: black)
-          }
-          if (i == m - 2){
-            bezier((x + size, y), (x + size, y + size), (x + size * 1.7, y + size/2), fill: color2, stroke: black)
-          }
-          }else{
-                      if (j == 0){
-            bezier((x, y), (x + size, y), (x + size/2, y - size * 0.7), fill: color2, stroke: black)
-          }
-          if (j == n - 2){
-            bezier((x, y + size), (x + size, y + size), (x + size/2, y + size * 1.7), fill: color2, stroke: black)
-          }
-          }
-          rect((x, y), (x + size, y + size), fill: color1, stroke: black)
+      if (i != m - 1) and (j != n - 1) {
+        // determine the color of the plaquette
+        let (colora, colorb) = if (calc.rem(i + j, 2) == 0) {
+          (color1, color2)
         } else {
-                if type_tag{
-          if (j == 0){
-            bezier((x, y), (x + size, y), (x + size/2, y - size * 0.7), fill: color1, stroke: black)
-          }
-          if (j == n - 2){
-            bezier((x, y + size), (x + size, y + size), (x + size/2, y + size * 1.7), fill: color1, stroke: black)
-          }
-            }else{
-               if (i == 0){
-            bezier((x, y), (x, y + size), (x - size * 0.7, y + size/2), fill: color1, stroke: black)
-          }
-          if (i == m - 2){
-            bezier((x + size, y), (x + size, y + size), (x + size * 1.7, y + size/2), fill: color1, stroke: black)
-          }
-            }
-          rect((x, y), (x + size, y + size), fill: color2, stroke: black)
+          (color2, color1)
         }
+        // four types of boundary plaquettes
+        if type_tag == (calc.rem(i + j, 2) == 0) {
+          if (i == 0) {
+              bezier((x, y), (x, y + size), (x - size * 0.7, y + size/2), fill: colorb, stroke: black)
+            }
+            if (i == m - 2) {
+              bezier((x + size, y), (x + size, y + size), (x + size * 1.7, y + size/2), fill: colorb, stroke: black)
+            }
+          } else {
+            if (j == 0) {
+              bezier((x, y), (x + size, y), (x + size/2, y - size * 0.7), fill: colorb, stroke: black)
+            }
+            if (j == n - 2) {
+              bezier((x, y + size), (x + size, y + size), (x + size/2, y + size * 1.7), fill: colorb, stroke: black)
+            }
+          }
+          rect((x, y), (x + size, y + size), fill: colora, stroke: black, name: name + "_square" + "_" + str(i) + "_" + str(j))
       }
-      circle((x, y), radius: 0.08 * size, fill: black, stroke: none)
-      if number_tag{
-      content((x + 0.2*size, y - 0.2*size), [#(i+(n - j - 1)*m+1)])
+      circle((x, y), radius: 0.08 * size, fill: black, stroke: none, name: name + "_" + str(i) + "_" + str(j))
     }
     }
   }
@@ -394,21 +381,41 @@ Here we consider two surface codes with code distance $d$. The CNOT gate between
   content((x, y), box(stroke: black, inset: 10pt, [$X$ stabilizers],fill: color2, radius: 4pt))
   content((x, y - 1.5*size), box(stroke: black, inset: 10pt, [$Z$ stabilizers],fill: color1, radius: 4pt))
 }
+
 #figure(canvas({
   import draw: *
-  surface_code((0, 0), 5, 5,color1: aqua,color2:yellow)
-  surface_code((5, 0), 5, 5,color1: aqua,color2:yellow)
+  surface_code((0, 0), 5, 5,color1: aqua,color2:yellow,type_tag: false)
+  surface_code((5, 0), 5, 5,color1: yellow,color2:aqua)
   surface_code_label((12,3))
   for i in range(5){
-    circle((4, i), radius: 0.1, fill: red, stroke: none, name: "control" + str(i))
-    circle((5, i), radius: 0.2, fill: none , stroke: red, name: "not" + str(i))
-    line("control" + str(i), "not" + str(i), stroke: red)
-    line((5-0.2, i), (5+0.2, i), stroke: red)
-    line((5, i - 0.2), (5, i + 0.2), stroke: red)
+    // let color3 = red
+    if (calc.rem(i, 2) == 0) {
+      let color3 = yellow
+          circle((4+0.5, i - 0.5), radius: 0.1, fill: color3, stroke: none, name: "control" + str(i))
+    line("control" + str(i), (4, i), stroke: color3)
+    line("control" + str(i), (5, i), stroke: color3)
+
+    if i != 0{
+      line("control" + str(i), (5, i - 1), stroke: color3)
+      line("control" + str(i), (4, i - 1), stroke: color3)        
+    }
+    }else{
+      let color3 = aqua
+          circle((4+0.5, i - 0.5), radius: 0.1, fill: color3, stroke: none, name: "control" + str(i))
+    line("control" + str(i), (4, i), stroke: color3)
+    line("control" + str(i), (5, i), stroke: color3)
+
+    if i != 0{
+      line("control" + str(i), (5, i - 1), stroke: color3)
+      line("control" + str(i), (4, i - 1), stroke: color3)        
+    }
+    }
+
   }
 }),caption: [
-  CNOT gate between two surface codes with code distance $d = 5$.
+  $overline(Z)_1 overline(Z)_2$ measurement with lattice surgery between two surface codes with code distance $d = 5$.
 ]) <fig:lattice-surgery>
+
 We assume the error model for the CNOT-operated qubit pairs is highly correlated: with probability $1-p$ and with error probability $p/3$ the error manifests as $X_1X_2$, $Y_1Y_2$, or $Z_1Z_2$. The error channel can be written as
 $
 cal(E)_(1 2)(rho) = (1-p) rho + p/3 X_1X_2 rho X_2X_1 + p/3 Y_1Y_2 rho Y_2Y_1 + p/3 Z_1Z_2 rho Z_2Z_1
@@ -461,11 +468,6 @@ We test this error model for two mixed-integer programming decoders: a conventio
 #figure(canvas({
   import draw: *
   surface_code((0, 0), 5, 7)
-}))
-#figure(canvas({
-  import draw: *
-  surface_code((0, 0), 5, 5,color1: green,color2:red)
-    surface_code((5, 0), 5, 5,number_tag: true)
 }))
 #figure(canvas({
   import draw: *
@@ -530,3 +532,19 @@ $
 A = sum_i f_i (A) M_i.
 $
 This means that the set of POVM elements ${M_i}_(i=1)^n$ is spans the operator space of $cal(H)$.
+
+#figure(canvas({
+  import draw: *
+  surface_code((0, 0), 5, 5,color1: aqua,color2:yellow)
+  surface_code((5, 0), 5, 5,color1: aqua,color2:yellow)
+  surface_code_label((12,3))
+  for i in range(5){
+    circle((4, i), radius: 0.1, fill: red, stroke: none, name: "control" + str(i))
+    circle((5, i), radius: 0.2, fill: none , stroke: red, name: "not" + str(i))
+    line("control" + str(i), "not" + str(i), stroke: red)
+    line((5-0.2, i), (5+0.2, i), stroke: red)
+    line((5, i - 0.2), (5, i + 0.2), stroke: red)
+  }
+}),caption: [
+  CNOT gate between two surface codes with code distance $d = 5$.
+]) 
