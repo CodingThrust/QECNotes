@@ -73,27 +73,11 @@ _Zhongyi Ni_, _Jinguo Liu_
   content((x, y), box(stroke: black, inset: 10pt, [$X$ stabilizers],fill: color2, radius: 4pt))
   content((x, y - 1.5*size), box(stroke: black, inset: 10pt, [$Z$ stabilizers],fill: color1, radius: 4pt))
 }
-== Simple Markov Chain Monte Carlo
-This note introduces a Markov Chain Monte Carlo (MCMC) method to estimate the logical error,
-which has fast mixing time.
 
-#figure(canvas(length: 0.9cm, {
-  import draw: *
-  surface_code((0, 0), 5, 5,color1: aqua,color2:yellow)
-  surface_code_label((7,3))
-  rect((1, 1), (2, 2), stroke:(paint: red.darken(30%), thickness: 2pt))
-  content((1.5, 1.5), text(14pt, red)[$R_1$])
-  line((4, 4), (4, 0), stroke:(paint: green, thickness: 2pt))
-  content((4.7, 2.2), text(14pt, green)[$R_2$])
-  circle((1.5, 0.5), radius: 0.1, fill: red, stroke: none)
-  circle((3.5, 2.5), radius: 0.1, fill: red, stroke: none)
-}), caption: [Surface code with code distance 5. The red dots are the error syndrome.
-The red circle is the update rule that does not change the logic state, while the green line are the update rules that changes the logic state.
-]) <fig:lattice-surgery>
-
-Let $cal(S) = {s_1, s_2, dots, s_m}$ be the set of stabilizers, $cal(Q) = {q_1, q_2, dots, q_n}$ be the set of logical $X$ and $Z$ operators for qubits.
-1. Create a random error configuration $sigma$ that associates the error syndrome to logic state $0$.
-2. Update the error configuration $sigma$ by applying one of the following update rules on it:
+== Simulated Annealing Decoding
+Here we introduce the basic setting of simulated annealing decoding@takeuchi2023comparative. Let $cal(S) = {s_1, s_2, dots, s_m}$ be the set of stabilizers, $cal(Q) = {q_1, q_2, dots, q_n}$ be the set of logical $X$ and $Z$ operators. The simulated annealing decoding is described as follows:
+1. Create an error configuration $sigma_0$ that associates the error syndrome by guassian eliminations.
+2. For each temperature $T$, update the error configuration $sigma$ by applying one of the following update rules on it:
    - $R_1$: applying a stabilizer $s_i in cal(S)$ to the qubits. It does not change the logic state or syndrome.
    - $R_2$: flipping a logical qubit $q_j in cal(Q)$. It changes the logic state, without changing the syndrome.
 
@@ -101,8 +85,73 @@ Let $cal(S) = {s_1, s_2, dots, s_m}$ be the set of stabilizers, $cal(Q) = {q_1, 
   $
     min ( 1, e^(-E(sigma') + E(sigma)))
   $
-  where $E(sigma)$ is the "energy" of the error configuration $sigma$ given by the error model. The energy is defined as the log of the probability of the error configuration $sigma$ given by the error model.
-3. $p_0\/p_1$ could be estimated by the ratio of the number of logical state 0 and 1 in the simulation.
+  where $E(sigma)$ is the "energy" of the error configuration $sigma$ given by the error model. The energy is defined as the log of the probability of the error configuration $sigma$. When dealing with different error models, we only needs to adjust the energy function. For example, we assume that the error model is a depolarizing noise model, $p_(x i)$ is the probablity that there is an $X$ error on the $i$-th qubit, $p_(y i)$ is the probablity that there is a $Y$ error on the $i$-th qubit, and $p_(z i)$ is the probablity that there is a $Z$ error on the $i$-th qubit. The energy is the log of the probability of the error configuration $sigma = (sigma_x, sigma_z)$.
+  $
+    E(sigma)  & = - log p(sigma) \ 
+    & = - sum_i (1 - sigma_(x i))(1 - sigma_(z i))log (1 - p_(x i) - p_(y i) - p_(z i)) - sum_i  sigma_(x i)(1 - sigma_(z i))log (p_(x i)) \   
+    & - sum_i sigma_(x i)sigma_(z i) log (p_(y i)) - sum_i (1 - sigma_(x i))sigma_(z i) log (p_(z i))
+  $
+
+  For a general error model, 
+  $
+  p(sigma) = product_alpha p_(alpha)(sigma_I_alpha)
+  $
+  where $I_alpha$ is the set of bits that are acted by the $alpha$-th term. The energy term becomes
+  $
+    E(sigma) = - sum_(alpha) log p_(alpha)(sigma_I_alpha)
+  $
+3. The probability of each logic sector is estimated by the ratio of the number of copies in each logic sector at temperature $T = 1$.
+
+#figure(canvas(length: 0.9cm, {
+  import draw: *
+  surface_code((0, 0), 5, 5,color1: silver,color2:white)
+  surface_code_label((7,3),color1: white,color2:silver)
+  rect((1, 4), (2, 3), stroke:(paint: red, thickness: 2pt))
+  content((1.5, 3.5), text(14pt, red)[$R_1$])
+  line((4, 4), (4, 0), stroke:(paint: green, thickness: 2pt))
+
+  line((1,1),(1, 2), (3, 2), stroke:(paint: purple, thickness: 2pt))
+  content((1.5, 1.5), text(14pt, purple)[$sigma_1$])
+
+  circle((2,0), radius: 0.1, fill: aqua, stroke: none, name: "q2")
+  line((3, 3), (3, 4), stroke:(paint: aqua, thickness: 2pt))
+  content((3.5, 3.5), text(14pt, aqua)[$sigma_2$])
+  content((2.3, -0.3), text(14pt, aqua)[$sigma_2$])
+
+  content((4.7, 2.2), text(14pt, green)[$R_2$])
+  circle((1.5, 0.5), radius: 0.1, fill: red, stroke: none)
+  circle((3.5, 2.5), radius: 0.1, fill: red, stroke: none)
+}), caption: [Surface code with code distance 5. The red dots are the error syndrome. The purple and blue paths are two possible error configurations $sigma_1$ and $sigma_2$. They correspond to different logic state sectors.
+The red square is the update rule that does not change the logic state, while the green line is the update rule that changes the logic state.
+]) <fig:lattice-surgery2>
+
+Another way to understand this simulated annealing progress is to denote whether applying a logical operator or a stabilizer as a spin. $S_j = -1$ denote we apply a the $j$-th operator, and $S_j = 1$ denote we do not apply it. 
+
+=== Simulation results
+We test the simulated annealing decoder for a distance $d = 3$ surface code. As shown in @fig:sa-decoder (a), there is a single $Z$ error happened on one of the physical qubits. We suppose the error model is a simple depolarizing noise model.
+$
+cal(E)_1(rho) = 0.7 rho + 0.1 X rho X + 0.1 Y rho Y + 0.1 Z rho Z
+$
+We can use tensor works to calculate the exact likelihood probability for different logical sectors. As shown in @fig:sa-decoder (b), these likelihoods can be well approximated by simulated annealing.
+#figure(canvas({
+  import draw: *
+  content((7.5,0.8), image("images/saplot.svg", width:340pt))
+  surface_code((-2.5, 1), 3, 3,size: 1.6,color1: aqua,color2:yellow)
+  surface_code_label((-1,-0.5))
+
+  circle((0.7, 4.2), radius: 0.2, fill: white, stroke: red,name:"q3")
+  content("q3", text(red)[$Z$])
+
+  // circle((calc.sqrt(3)*1.5, - 1.5), radius: 0.2, fill: red, stroke: none)
+  // circle((-calc.sqrt(3)*1.5, - 1.5), radius: 0.2, fill: red, stroke: none)
+  content((-3,5),[(a)])
+  content((2,5),[(b)])
+  }
+  ),caption: [
+  (a) A physical $Z$ error happened on one of the physical qubits. (b) Simulated annealing progress. The x-axis is the inverse temperature $beta$ going from $0$ to $1$ and the y-axis is the sample frequency of four different logical sectors. At the beginning, the temperature is high and the system equilibrates to all four logical sectors after a short time of thermalization. As the temperature decreases, the sample frequency of the logical sectors converge to the exact likelihood probability. Here the step number of $beta$ and the sample number are both $10000$.
+])<fig:sa-decoder>
+
+The problem of the simple Markov Chain Monte Carlo is that the acceptance ratio is very low, because the logical states are highly nonlocal. Changing the logical state from one to another is very unlikely.
 
 == Paper Review
 1. Statistical mechanical models for quantum codes with correlated noise@chubb2021statistical
@@ -202,6 +251,46 @@ which can be determined by running a few MC steps and estimate $F_m$ with @eq:fr
 - The number of sweeps:
   - $N = 10000$
 
-== Limitations of IP for QEC
-IP performs much worse when the error rate is high. 
+== Free energy machine@shen2025free
+In qubit configuration, the energy function can be written as
+  $
+    E(sigma) = - sum_(alpha) log p_(alpha)(sigma_I_alpha)
+  $
+In spin glass model of operators, the energy function can be written as
+$
+  E(S) = - sum_alpha sum_(n=1)^(2^(|alpha|)) log p_(alpha n) product_(i in I_alpha) ("readbit"(n,i) == "count"(S_j ==  -1, S_j "flips" i) +_(2) sigma_(o i) )
+$
+In free energy machine, we need to relax the constraint that $S_j$ is a binary variable. Here we use $v_j in [0, 1]$ to denote the probability that the $j$-th operator is applied. And we use $w_i$ to denote the probability that the $i$-th qubit is 0. Here we relax the constraint and assume the qubits are independent to each other. The energy function can be written as
+$
+  E(sigma) = - sum_(alpha) sum_(n=1)^(2^(|alpha|)) (w_(i_1)(1- w_(i_2))...) log p_(alpha n)
+$
+To calculate $w_i$, we again assume the $v_j$ are independent to each other.
+$
+  w_i = sum_(A in A_i \ |A| +_2 sigma_(0i) = 0) product_(j in A) v_j  product_(j' in A_i \\ A) (1 - v_j')
+$
+where $A_i$ is the set of all operators that act on the $i$-th qubit. This formula can be easily calculated by dynamic programming when $v_j$ are given.
+
+Now we can define the process of free energy machine. Like a simulated annealing process, we start from a high temperature and then gradually decrease it. At each temperature, we update the configuration $v_j$ by gradient descent with respect to the free energy function.
+$
+  F = E - T S
+$
+where $E$ is the energy function defined above and $S$ is the entropy function.
+$
+  S = - sum_(j) (v_j log v_j + (1 - v_j) log (1 - v_j))
+$
+== Population annealing
+Population annealing is a Monte Carlo technique for sampling equilibrium distributions and optimizing complex systems, particularly in statistical physics. It evolves a population of $N$ replicas through a decreasing temperature schedule. At each temperature, replicas are resampled according to Boltzmann weights 
+$
+w_i = e^(-(beta_(k+1) - beta_k)E_i)
+$
+where $E_i$ is the energy of replica $i$. The population is stochastically replicated or pruned such that the expected number of copies of replica $i$ is $R_i = w_i/(angle.l w angle.r)$, where 
+$angle.l w angle.r = 1/N sum_i w_i$, preserving detailed balance. After resampling, each replica undergoes Markov chain Monte Carlo (MCMC) steps at $beta_(k+1)$ to equilibrate. This dual process of resampling and thermalization allows efficient exploration of energy landscapes, with parallelizability and adaptability near phase transitions. The method minimizes population degeneracy via controlled cooling rates, ensuring convergence to equilibrium states, and is widely applied to spin glasses, polymers, and NP-hard optimization problems.
+
+== Parallel tempering
+Parallel tempering (PT), also known as replica exchange Monte Carlo, is a computational method for efficiently sampling complex energy landscapes by simulating multiple replicas of a system in parallel at different temperatures. Each replica $i$ operates at an inverse temperature $beta_i = 1/(k_B T_i)$, with a predefined temperature ladder $beta_1 < beta_2 < dots < beta_M$. During the simulation, replicas undergo local updates (e.g., Metropolis-Hastings steps) at their assigned temperatures. Periodically, adjacent replicas $i$ and $j = i+1$ attempt to swap configurations with an acceptance probability derived from detailed balance:  
+$
+P_("swap") = min(1, e^((beta_i - beta_j)(E_i - E_j)))
+$
+where $E_i$ and $E_j$ are the energies of the two configurations. High-temperature replicas ($beta_i$) explore broad regions of phase space, while low-temperature ones ($beta_j$) refine low-energy states. Swaps allow trapped configurations to escape local minima, enhancing equilibration. This method is widely used in studying spin glasses, biomolecules, and other systems with rugged free-energy landscapes.
+
 #bibliography("refs.bib")
