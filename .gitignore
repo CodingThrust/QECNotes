@@ -2,3 +2,4 @@
 *.pdf
 .vscode/
 Manifest.toml
+*.zip
